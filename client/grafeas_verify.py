@@ -4,7 +4,7 @@
     grafeas-verify
 
   <Description>
-    Fetches a named supply chain, as well as it's ocurrences for verification
+    Fetches a named supply chain, as well as it's occurrences for verification
 
 """
 import time
@@ -18,86 +18,111 @@ import shlex
 import swagger_client
 from swagger_client.rest import ApiException
 
+from constants import SERVER_URL, LAYOUT_OPERATION_ID
+
 # in-toto specific imports
 import in_toto.verifylib as verifylib
 import in_toto.util as util
-import in_toto.models.layout as layout
 import in_toto.models.metadata as metadata
+import in_toto.models.link
 
 from pprint import pprint
-THIS_OPERATION='a40f2623-986b-4ed8-9022-a3f78a57b8c6'
+
 
 def parse_arguments():
   parser = argparse.ArgumentParser()
-  grafeas_run_args = parser.add_argument_group("grafeas-run options")
-  grafeas_run_args.add_argument("-t", "--target", help="the grafeas server url",
-      dest="host", default="http://localhost:8080")
-  grafeas_run_args.add_argument("-k", "--key", help="key used for verification")
-  grafeas_run_args.add_argument("-n", "--name", help="the named operation")
+  parser.add_argument("-t", "--target", help="grafeas server url",
+      dest="target", default=SERVER_URL, metavar="<server url>")
+  parser.add_argument("-i", "--id", help="project id used to load the layout",
+      required=True, dest="project_id", metavar="<project id>")
+  parser.add_argument("-k", "--key", help="pubkey used for verification",
+      required=True, metavar="<public key>")
 
   return parser.parse_args()
 
 
-def fetch_layout(name, project_id, api_instance):
+def fetch_layout(project_id, api_instance):
   """
     <Description>
       Auxiliary method to obtain a layout from a target server
   """
-  grafeas_operation = api_instance.get_operation(project_id, name)
+  grafeas_operation = api_instance.get_operation(project_id,
+      LAYOUT_OPERATION_ID)
+
   with open('root.layout', 'wt') as fp:
     layout_json = fp.write(grafeas_operation.metadata['in-toto'])
   layout = metadata.Metablock.load('root.layout')
   return layout
 
-def fetch_ocurrence(project_id, name, key_prefix, api_instance):
+
+def fetch_occurrence(project_id, name, keyid, api_instance):
   """
     <Description>
-      Auxiliary method to fetch an ocurrence for a specific in-toto step
+      Auxiliary method to fetch an occurrence for a specific in-toto step
   """
-  link_name = "{}-{}".format(name, key_prefix)
-  occurrence = api_instance.get_occurrence(projects_id, link_name)
-  return occurrence.link_metadata
+  occurrence_id = "{}-{}".format(name, keyid[:8])
+  occurrence = api_instance.get_occurrence(project_id, occurrence_id)
 
-def serialize_occurrence(link_metadata, name, key_prefix):
-  link_name = "{}-{}".format(name, key_prefix)
-  with open("{}.link".format(link_name), "wt"):
-    json.dumps(link, fp)
+  link_file_name = in_toto.models.link.FILENAME_FORMAT.format(
+      step_name=name, keyid=keyid)
 
+  ##########################################
+  # BEGIN FIXME: Fix deserialization
+  # Some fields don't get deserialized properly.
+  # Below code is really really hackyish.
+  # Santiago, please fix, Santiago! :P
+  import ast
+  cmd = occurrence.link_metadata.signed.command
+  cmd_list = ast.literal_eval(cmd)
+  occurrence.link_metadata.signed.command = cmd_list
 
-  def main():
+  occurrence.link_metadata.signed.byproducts["return-value"] = \
+    int(occurrence.link_metadata.signed.byproducts["return-value"])
+
+  if not occurrence.link_metadata.signed.materials:
+    occurrence.link_metadata.signed.materials = {}
+
+  if not occurrence.link_metadata.signed.products:
+    occurrence.link_metadata.signed.products = {}
+
+  ########### END FIXME: Fix deserialization
+  ##########################################
+
+  with open(link_file_name, "wt") as fp:
+    json.dump(occurrence.link_metadata.to_dict(), fp)
+
+def main():
   args = parse_arguments()
-  args.name = THIS_OPERATION
 
   # configure our instance of the grafeas api
-  swagger_client.configuration.host = args.host
+  swagger_client.configuration.host = args.target
   api_instance = swagger_client.GrafeasApi()
 
-  # let's create an note on a test proejct here
-  projects_id = 'projects_id_example' # str | Part of `parent`. This field contains the projectId for example: \"project/{project_id}
-
   try:
-    key = {}
-    if 'key' in args:
-      this_key = util.import_rsa_key_from_file(args.key)
-
-    key[this_key['keyid']] = this_key
-    layout = fetch_layout(args.name, projects_id, api_instance)
+    pubkey = util.import_rsa_public_keys_from_files_as_dict([args.key])
+    layout = fetch_layout(args.project_id, api_instance)
 
   except Exception as e:
-    print("Exception when fetching the in-toto layout".format(e))
-    raise
+    print("Exception when fetching the in-toto layout\n{}: {}"
+        .format(type(e).__name__, e))
+    sys.exit(1)
+
 
   # fetch the link metadata for every step
   for step in layout.signed.steps:
     for keyid in step.pubkeys:
-      import pdb; pdb.set_trace()
       try:
-        occurrence = fetch_ocurrence(projects_id, step.name, keyid[:], api_instance)
-        serialize_occurrence(occurrence, step.name, keyid[:])
+        fetch_occurrence(args.project_id, step.name, keyid, api_instance)
       except ApiException as e:
+        raise e
         pass
 
-  verifylib.in_toto(layout, key)
+  try:
+    verifylib.in_toto_verify(layout, pubkey)
+  except Exception as e:
+    print("Exception when verifying the supply chain\n{}: {}"
+        .format(type(e).__name__, e))
+    sys.exit(1)
 
 if __name__ == "__main__":
   main()
