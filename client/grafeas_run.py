@@ -62,34 +62,36 @@ def link_to_ocurrence(name, link, project_id):
   return this_ocurrence 
 
 
-args = parse_arguments()
+def main():
+  args = parse_arguments()
 
-# configure our instance of the grafeas api
-swagger_client.configuration.host = args.host
-api_instance = swagger_client.GrafeasApi()
+  # configure our instance of the grafeas api
+  swagger_client.configuration.host = args.host
+  api_instance = swagger_client.GrafeasApi()
 
-# let's create an note on a test proejct here
-projects_id = 'projects_id_example' # str | Part of `parent`. This field contains the projectId for example: \"project/{project_id}
+  # let's create an note on a test proejct here
+  projects_id = 'projects_id_example' # str | Part of `parent`. This field contains the projectId for example: \"project/{project_id}
 
-try:
-  key = False
-  if 'key' in args:
-    key = util.import_rsa_key_from_file(args.key)
-  link = runlib.in_toto_run(args.name, ['.'], ['.'], args.link_cmd, key=key)
-except Exception as e:
-  print("Exception when calling in-toto runlib: {}".format(e))
-  sys.exit(1)
+  try:
+    key = False
+    if 'key' in args:
+      key = util.import_rsa_key_from_file(args.key)
+    link = runlib.in_toto_run(args.name, ['.'], ['.'], args.link_cmd, key=key)
+  except Exception as e:
+    print("Exception when calling in-toto runlib: {}".format(e))
+    sys.exit(1)
 
-# Submit the link metadata now
-occurrence_name = "{}-{}".format(args.name, link.signatures[0]['keyid'][:8])
-import pdb; pdb.set_trace()
-occurrence = link_to_ocurrence(occurrence_name, link, projects_id)
-try:
-  api_response = api_instance.create_occurrence(projects_id, occurrence=occurrence)
-  pprint(api_response)
-  pass
-except ApiException as e:
-  print("Exception when calling GrafeasApi->create_ocurrence: {}".format(e))
-  sys.exit(1)
+  # Submit the link metadata now
+  occurrence_name = "{}-{}".format(args.name, link.signatures[0]['keyid'][:8])
+  import pdb; pdb.set_trace()
+  occurrence = link_to_ocurrence(occurrence_name, link, projects_id)
+  try:
+    api_response = api_instance.create_occurrence(projects_id, occurrence=occurrence)
+    pprint(api_response)
+    pass
+  except ApiException as e:
+    print("Exception when calling GrafeasApi->create_ocurrence: {}".format(e))
+    sys.exit(1)
 
-
+if __name__ == "__main__":
+  main()

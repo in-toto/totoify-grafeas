@@ -64,36 +64,40 @@ def serialize_occurrence(link_metadata, name, key_prefix):
     json.dumps(link, fp)
 
 
-args = parse_arguments()
-args.name = THIS_OPERATION
+  def main():
+  args = parse_arguments()
+  args.name = THIS_OPERATION
 
-# configure our instance of the grafeas api
-swagger_client.configuration.host = args.host
-api_instance = swagger_client.GrafeasApi()
+  # configure our instance of the grafeas api
+  swagger_client.configuration.host = args.host
+  api_instance = swagger_client.GrafeasApi()
 
-# let's create an note on a test proejct here
-projects_id = 'projects_id_example' # str | Part of `parent`. This field contains the projectId for example: \"project/{project_id}
+  # let's create an note on a test proejct here
+  projects_id = 'projects_id_example' # str | Part of `parent`. This field contains the projectId for example: \"project/{project_id}
 
-try:
-  key = {}
-  if 'key' in args:
-    this_key = util.import_rsa_key_from_file(args.key)
-    
-  key[this_key['keyid']] = this_key
-  layout = fetch_layout(args.name, projects_id, api_instance)  
+  try:
+    key = {}
+    if 'key' in args:
+      this_key = util.import_rsa_key_from_file(args.key)
 
-except Exception as e:
-  print("Exception when fetching the in-toto layout".format(e))
-  raise
+    key[this_key['keyid']] = this_key
+    layout = fetch_layout(args.name, projects_id, api_instance)
 
-# fetch the link metadata for every step
-for step in layout.signed.steps:
-  for keyid in step.pubkeys:
-    import pdb; pdb.set_trace()
-    try:
-      occurrence = fetch_ocurrence(projects_id, step.name, keyid[:], api_instance)
-      serialize_occurrence(occurrence, step.name, keyid[:])
-    except ApiException as e:
-      pass
+  except Exception as e:
+    print("Exception when fetching the in-toto layout".format(e))
+    raise
 
-verifylib.in_toto(layout, key)
+  # fetch the link metadata for every step
+  for step in layout.signed.steps:
+    for keyid in step.pubkeys:
+      import pdb; pdb.set_trace()
+      try:
+        occurrence = fetch_ocurrence(projects_id, step.name, keyid[:], api_instance)
+        serialize_occurrence(occurrence, step.name, keyid[:])
+      except ApiException as e:
+        pass
+
+  verifylib.in_toto(layout, key)
+
+if __name__ == "__main__":
+  main()
