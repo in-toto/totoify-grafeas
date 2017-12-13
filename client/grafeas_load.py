@@ -33,10 +33,11 @@ from pprint import pprint
 def parse_arguments():
   parser = argparse.ArgumentParser()
   parser.add_argument("-t", "--target", help="grafeas server url",
-      dest="target", default=SERVER_URL)
+      dest="target", default=SERVER_URL, metavar="<server url>")
   parser.add_argument("-i", "--id", help="project id", required=True,
-      dest="project_id")
-  parser.add_argument("-l", "--layout", help="path to layout", required=True)
+      dest="project_id", metavar="<project id>")
+  parser.add_argument("-l", "--layout", help="path to layout", required=True,
+      metavar="<path/to/layout>")
 
   return parser.parse_args()
 
