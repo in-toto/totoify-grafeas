@@ -11,12 +11,12 @@ This is done by adding the following fields to the grafeas api:
 
 An Operation will be extended with an in-toto layout metadata as part of it's
 metadata field. This will describe the operation in depth and can be used to
-verify that all the notes and ocurrences are correct
+verify that all the notes and occurrences are correct
 
 You can load an in-toto layout into grafeas the following way:
 
 ```shell
-$ grafeas-load --layout [in-toto.layout] --host [URL]
+$ grafeas-load [-t <server url>] -i <project id> -l <path/to/layout>
 ```
 
 This will load a layout as the operation, and will namespace the
@@ -31,15 +31,19 @@ layout into grafeas, the script will also generate a series of notes with the
 proper namespacing (see namespacing) in order to produce a series of notes for
 each step and inspection.
 
-## Ocurrences
+## Occurrences
 
-Ocurrences are the closest type of metadata that could match a link. As such, a
+Occurrences are the closest type of metadata that could match a link. As such, a
 small extension to the current metadata format would allow for it to hold the
 link metadata fields. You can test this using the client-side tool
 `grafeas-run`
 
-```python
-$ grafeas-run --host [url] --key [signing-key] --name [ocurrence-name] -- command [arg1] [arg2]...[argn]
+```shell
+$ grafeas-run [-t <server url>] -i <project id> -k
+              <path/to/signing/key> -n <step name>
+              [-m <material/path> [<material/path> ...]]
+              [-p <product/path> [<product/path> ...]]
+               -- [<command to run> [<command to run> ...]]
 ```
 
 This will run a command, record in-toto metadata, genearte a grafeas message
