@@ -20,7 +20,7 @@ import json
 import attr
 import argparse
 
-from constants import SERVER_URL, LAYOUT_OCCURENCE_ID
+from constants import SERVER_URL, LAYOUT_OPERATION_ID
 
 # grafeas-specific client imports
 import swagger_client
@@ -54,7 +54,7 @@ def main():
 
   # Pass these as args? Make constants?
   project_id = args.project_id
-  operation_id = LAYOUT_OCCURENCE_ID
+  operation_id = LAYOUT_OPERATION_ID
   operation_name = "projects/{}/operations/{}".format(project_id, operation_id)
 
   # Let's create an operation and post it to the server
