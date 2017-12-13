@@ -1,81 +1,88 @@
 #!/usr/bin/env python
 """
-  <Name>
-    grafeas-load
+<Name>
+  grafeas_load.py
 
-  <Description>
+<Description>
+  Loads an in-toto layout and posts it to grafeas server as an
+  *operation*, additionally creates a *note* for each step listed in the
+  layout. The *notes* reference the *operation*.
 
-    Loads an in-toto layout and submits it into the grafeas server as an
-    operation.
+<Usage>
 
+  grafeas-load --id <project-id> --layout <path/to/root.layout> \
+      [--target <grafeas server url>]
 
 """
 import time
 import sys
 import json
 import attr
+import argparse
+
+from constants import SERVER_URL, LAYOUT_OCCURENCE_ID, LAYOUT_OCCURENCE_NAME
 
 # grafeas-specific client imports
 import swagger_client
 from swagger_client.rest import ApiException
 
 # in-toto models and classes
-from create_layout import create_layout
-
+import in_toto.models.metadata
 from pprint import pprint
 
-# configure our instance of the grafeas api
-swagger_client.configuration.host='http://localhost:8080'
+def parse_arguments():
+  parser = argparse.ArgumentParser()
+  parser.add_argument("-t", "--target", help="grafeas server url",
+      dest="target", default=SERVER_URL)
+  parser.add_argument("-i", "--id", help="project id", required=True,
+      dest="project_id")
+  parser.add_argument("-l", "--layout", help="path to layout", required=True)
 
-def step_to_note(step, project_id):
-  """
-    <Description>
-      Auxiliary method to create a note out of in-toto step metadata
-  """
+  return parser.parse_args()
 
-  this_note = swagger_client.Note()
-  this_note.step = json.dumps(attr.asdict(step))
-  this_note.name = "projects/{}/notes/{}".format(project_id, step.name)
-
-  return this_note
 
 def main():
+  args = parse_arguments()
+
+  # Load passed in-toto layout
+  layout = in_toto.models.metadata.Metablock.load(args.layout)
+  layout_json_string = json.dumps(attr.asdict(layout))
+
+  # Configure our instance of the grafeas api
+  swagger_client.configuration.host = args.target
   api_instance = swagger_client.GrafeasApi()
 
-  # let's create an note on a test proejct here
-  projects_id = 'projects_id_example' # str | Part of `parent`. This field contains the projectId for example: \"project/{project_id}
-  note_id = 'note_id_example' # str | The ID to use for this note. (optional)
-  note = swagger_client.Note() # Note | The Note to be inserted (optional)
-  note.name = 'projects/{}/notes/{}'.format(projects_id, note_id)
+  # Pass these as args? Make constants?
+  projects_id = args.project_id
+  operation_id = LAYOUT_OCCURENCE_ID
+  operation_name = LAYOUT_OCCURENCE_NAME
 
-  # let's load our in-toto layout now
-  layout = create_layout()
-  layout_payload = json.dumps(attr.asdict(layout))
-
-
-  # if we succeeded (this means their api is still wroking :) ), let's create an operation
-  operation = swagger_client.Operation(name='kek',
-      metadata={"in-toto": layout_payload}, done=False)
-
-
+  # Let's create an operation and post it to the server
+  operation = swagger_client.Operation(name=operation_name,
+      metadata={"in-toto": layout_json_string}, done=False)
   try:
-    # fixme, check how the create operation is done in the server side.
-    api_response = api_instance.create_operation(projects_id, "toto_grafeas_1.0",
-        operation=operation)
+    api_response = api_instance.create_operation(projects_id,
+        operation_id, operation=operation)
     pprint(api_response)
-    pass
+
   except ApiException as e:
-    print("Exception when calling GrafeasApi->create_note: {}".format(e))
+    print("Exception when calling GrafeasApi->create_operation: {}".format(e))
     sys.exit(1)
 
-  # try to serialize all of the steps as notes
+
+  # Create notes for every step in the loaded layout and post them to the
+  # server
   for step in layout.signed.steps:
-    note = step_to_note(step, projects_id)
+    note = swagger_client.Note()
+    note.step = json.dumps(attr.asdict(step))
+    note.name = "projects/{}/notes/{}".format(projects_id, step.name)
+
     try:
-      api_response = api_instance.create_note(projects_id, note_id=step.name, note=note)
+      api_response = api_instance.create_note(projects_id,
+          note_id=step.name, note=note)
       pprint(api_response)
+
     except ApiException as e:
-      pass
       print("Exception when calling GrafeasApi->create_note: {}".format(e))
       sys.exit(1)
 
