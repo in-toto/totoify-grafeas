@@ -20,7 +20,7 @@ import json
 import attr
 import argparse
 
-from constants import SERVER_URL, LAYOUT_OCCURENCE_ID, LAYOUT_OCCURENCE_NAME
+from constants import SERVER_URL, LAYOUT_OCCURENCE_ID
 
 # grafeas-specific client imports
 import swagger_client
@@ -53,15 +53,15 @@ def main():
   api_instance = swagger_client.GrafeasApi()
 
   # Pass these as args? Make constants?
-  projects_id = args.project_id
+  project_id = args.project_id
   operation_id = LAYOUT_OCCURENCE_ID
-  operation_name = LAYOUT_OCCURENCE_NAME
+  operation_name = "projects/{}/operations/{}".format(project_id, operation_id)
 
   # Let's create an operation and post it to the server
   operation = swagger_client.Operation(name=operation_name,
       metadata={"in-toto": layout_json_string}, done=False)
   try:
-    api_response = api_instance.create_operation(projects_id,
+    api_response = api_instance.create_operation(project_id,
         operation_id, operation=operation)
     pprint(api_response)
 
@@ -75,10 +75,10 @@ def main():
   for step in layout.signed.steps:
     note = swagger_client.Note()
     note.step = json.dumps(attr.asdict(step))
-    note.name = "projects/{}/notes/{}".format(projects_id, step.name)
+    note.name = "projects/{}/notes/{}".format(project_id, step.name)
 
     try:
-      api_response = api_instance.create_note(projects_id,
+      api_response = api_instance.create_note(project_id,
           note_id=step.name, note=note)
       pprint(api_response)
 
