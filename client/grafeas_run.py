@@ -39,19 +39,21 @@ from pprint import pprint
 def parse_arguments():
   parser = argparse.ArgumentParser()
   parser.add_argument("-t", "--target", help="grafeas server url",
-      dest="target", default=SERVER_URL)
+      dest="target", default=SERVER_URL, metavar="<server url>")
   parser.add_argument("-i", "--id", help="project id", required=True,
-      dest="project_id")
-  parser.add_argument("-k", "--key", help="link signing key", required=True)
-  parser.add_argument("-n", "--name", help="step name", required=True)
+      dest="project_id", metavar="<project id>")
+  parser.add_argument("-k", "--key", help="link signing key", required=True,
+      metavar="<path/to/signing/key>")
+  parser.add_argument("-n", "--name", help="step name", required=True,
+      metavar="<step name>")
 
   # Record nor materials/products per default
   parser.add_argument("-m", "--materials", help="materials to record",
-      default=[], nargs="+")
+      default=[], nargs="+", metavar="<material/path>")
   parser.add_argument("-p", "--products", help="products to record",
-      default=[], nargs="+")
+      default=[], nargs="+", metavar="<product/path>")
 
-  parser.add_argument("link_cmd", nargs="*",
+  parser.add_argument("link_cmd", nargs="*", metavar="<command to run>",
       help="command to be executed with options and arguments")
 
   return parser.parse_args()
@@ -80,7 +82,7 @@ def main():
     sys.exit(1)
 
 
-  # Create an occurence from the link
+  # Create an occurrence from the link
   link_dict = attr.asdict(link)
 
   # We need to cast return-value to string or else parsing breaks mysteriously
@@ -91,8 +93,7 @@ def main():
   signable = swagger_client.LinkSignable(**(link_dict["signed"]))
   grafeas_link = swagger_client.LinkMetadata(signable, link.signatures)
 
-
-  # Create the occurence object that is posted to the server
+  # Create the occurrence object that is posted to the server
   occurrence = swagger_client.Occurrence()
 
   # Occurrences/links use the step name + signing keyid as id
@@ -100,22 +101,22 @@ def main():
   occurrence_id = "{}-{}".format(args.name, link.signatures[0]["keyid"][:8])
   occurrence_name = "projects/{}/occurrences/{}".format(project_id,
       occurrence_id)
-  occurrence_name = occurrence_id
 
   # Notes/steps only use the step name as id
   note_name = "projects/{}/notes/{}".format(project_id, args.name)
 
   occurrence.name = occurrence_name
   occurrence.note_name = note_name
-  occurrence.link_metadata = grafeas_link.to_dict()
+  occurrence.link_metadata = grafeas_link
+
 
   try:
     api_response = api_instance.create_occurrence(project_id,
         occurrence=occurrence)
-    # pprint(api_response)
+    pprint(api_response)
 
   except ApiException as e:
-    print("Exception when calling GrafeasApi->create_ocurrence: {}".format(e))
+    print("Exception when calling GrafeasApi->create_occurrence: {}".format(e))
     sys.exit(1)
 
 if __name__ == "__main__":
