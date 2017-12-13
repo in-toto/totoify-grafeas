@@ -1817,16 +1817,18 @@ class GrafeasApi(object):
             params[key] = val
         del params['kwargs']
         # verify the required parameter 'projects_id' is set
+        query_params = {}
         if ('operation_id' not in params) or (params['operation_id'] is None):
             raise ValueError("Missing the required parameter `operation_id` when calling `create_operation`")
 
-        resource_path = '/v1alpha1/projects/{projectsId}/operations/'.replace('{format}', 'json')
+        query_params['operationId'] = params['operation_id']
+
+        resource_path = '/v1alpha1/projects/{projectsId}/operations'.replace('{format}', 'json')
 
         path_params = {}
         if 'project_id' in params:
             path_params['projectsId'] = params['project_id']
 
-        query_params = {}
 
         header_params = {}
 
