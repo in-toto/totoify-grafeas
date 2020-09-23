@@ -1,0 +1,38 @@
+{
+  "name": "projects/occurrence_example/occurrences/test",
+  "resource": {
+    "uri": "some-uri"
+  },
+  "noteName": "projects/provider_example/notes/testNote",
+  "kind": "INTOTO",
+  "intoto": {
+    "signatures": [
+      {
+        "keyid": "776a00e29f3559e0141b3b096f696abc6cfb0c657ab40f441132b345b08453f5",
+        "signature": "1cc245803ed63335b95b91a527f740fe176109ffb372c6f0e0075fa069fb9e8d85df4c4be1a33dcce8f5e7d660b14a75e409ee30c43af303e751d38b0697e4cd3cdc586219f638513fd8471bcdeaf762e51a7cd033780da98f364cc39f188faa7d0165f44ba2f051d04d28dab5f7a295876f9fafc31d3bbf91175969f7965b4927d040957cd3f7a6bf002f9fa0eb979b5ba9bf2328fad11be365ddfae158cb35e2f5545da9765499328a9df6faab00993ef7ec0c3f7a7518d28ec41c72c738b2d0eb2da5fb9d1d5f1e01632163117138968acbc2959cf8534b89bb27b9a82f1931a1c6d3533cefcff0ad60aff909eb6de375d71e88d42e3f7504393e2539946a03bb22a9502d12ea2444fc55bb102569f29d02028109a21c85cc1500cef313eb8f13f0339297c3b9eeab9f8350ab15b44029630ee6279dd60c4225dc08833e5dc04a32a27b3c6de6fd8e3b77a77420c0c9a9057cecabfef08bdb34fa5460a1d1c8faedc18d0df20d1cb824a045690d183d25575efdd4019e2aac087948e02d13"
+      }
+    ],
+    "signed": {
+      "_type": "link",
+      "byproducts": {
+		"custom_values": {
+		  "return-value": "0"
+        }
+      },
+      "command": [
+        "git",
+        "clone",
+        "https://github.com/in-toto/demo-project.git"
+      ],
+      "environment": {},
+      "materials": [],
+      "name": "clone",
+      "products": [{
+        "resource_uri": "demo-project/foo.py",
+        "hashes": {
+          "sha256": "ebebf8778035e0e842a4f1aeb92a601be8ea8e621195f3b972316c60c9e12235"
+        }
+      }]
+    }
+  }
+}

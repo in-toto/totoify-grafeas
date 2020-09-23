@@ -1,0 +1,34 @@
+{
+  "name": "projects/provider_example/notes/test",
+  "shortDescription": "A brief description of the note",
+  "longDescription": "A longer description of the note",
+  "kind": "INTOTO",
+  "intoto": {
+    "step_name": "clone",
+    "signing_keys": [
+      {
+        "key_id": "776a00e29f3559e0141b3b096f696abc6cfb0c657ab40f441132b345b08453f5",
+        "key_type": "rsa",
+        "public_key_value": "-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA0Zfzonp3/FScaIP+KKuz\nB+OZNFpjbVGWjm3leqnFqHYLqrLcCw5KhlXpycJqoSvZBpO+PFCksUx8U/ryklHG\nVoDiB84pRkvZtBoVaA4b4IHDIhz1K5NqkJgieya4fwReTxmCW0a9gH7AnDicHBCX\nlzMxqEdt6OKMV5g4yjKaxf8lW72O1gSI46GSIToo+Z7UUgs3ofaM5UFIcczgCpUa\n5kEKocB6cSZ9U8PKRLSs0xO0ROjrcOTsfxMs8eV4bsRCWY5mAq1WM9EHDSV9WO8g\nqrRmanC4enNqa8jU4O3zhgJVegP9A01r9AwNt6AqgPSikwhXN/P4v1FMYV+R6N3b\nS1lsVWRAnwBq5RFz5zVvcY88JEkHbrcBqP/A4909NXae1VMXmnoJb4EzGAkyUySB\na+fHXAVJgzwyv3I48d/OIjH8NWcVmM/DQL7FtcJk3tp0YUjY5wNpcbQTnLzURtlU\nsd+MtGuvdlDxUUvtUYCIVKRdS8UzYnTPjI2xzeoSHZ2ZAgMBAAE=\n-----END PUBLIC KEY-----",
+        "key_scheme": "rsassa-pss-sha256"
+      }
+    ],
+    "expected_materials": [],
+    "expected_products": [{"artifact_rule":
+      [
+        "CREATE",
+        "demo-project/foo.py"
+      ]},
+      {"artifact_rule": [
+        "DISALLOW",
+        "*"
+      ]}
+    ],
+    "expected_command": [
+      "git",
+      "clone",
+      "https://github.com/in-toto/demo-project.git"
+    ],
+    "threshold": 1
+  }
+}
