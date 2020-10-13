@@ -14,18 +14,35 @@ class GrafeasLink:
   def __init__(self, link_materials, link_products, link_command,
       link_byproducts, link_environment):
 
-    for item in link_materials:
-      self.materials.append(item)
+    if isinstance(link_materials, dict):
+      for item in link_materials:
+        self.materials.append(item)
+    elif isinstance(link_materials, list):
+      self.materials = link_materials
+    # else raise exception
 
-    for item in link_products:
-      self.products.append(item)
+    if isinstance(link_products, dict):
+      for item in link_products:
+        self.products.append(item)
+    elif isinstance(link_products, list):
+      self.products = link_products
+    # else raise exception
+
     self.command = link_command
     
-    for key, value in link_byproducts.items():
-      self.byproducts['custom_values'][key] = value
+    if "custom_values" in link_byproducts:
+      # this could cause problems when "custom_values" is an actual field
+      self.byproducts = link_byproducts
+    else:
+      for key, value in link_byproducts.items():
+        self.byproducts["custom_values"][key] = value
 
-    for key, value in link_environment.items():
-      self.environment['custom_values'][key] = value
+    if "custom_values" in link_environment:
+      # this could cause problems when "custom_values" is an actual field
+      self.environment = link_environment
+    else:
+      for key, value in link_environment.items():
+        self.environment["custom_values"][key] = value
 
 
 
@@ -40,14 +57,15 @@ class GrafeasInTotoOccurrence:
     "signed": None
   }
 
-  def __init__(self, in_toto_link, note_name, resource_uri):
-    self.intoto["signed"] = GrafeasLink(in_toto_link.signed["materials"],
-                                        in_toto_link.signed["products"],
-                                        in_toto_link.signed["command"],
-                                        in_toto_link.signed["byproducts"],
-                                        in_toto_link.signed["environment"])
-
-    self.intoto["signatures"] = in_toto_link.signatures
+  def __init__(self, in_toto_link=None, note_name=None, resource_uri=None):
+    if in_toto_link:
+      self.intoto["signed"] = GrafeasLink(in_toto_link.signed["materials"],
+                                          in_toto_link.signed["products"],
+                                          in_toto_link.signed["command"],
+                                          in_toto_link.signed["byproducts"],
+                                          in_toto_link.signed["environment"])
+      for signature in in_toto_link.signatures:
+        self.intoto["signatures"].append({"keyid": signature["keyid"], "signature": signature["sig"]})
 
     self.note_name = note_name
 
@@ -62,15 +80,22 @@ class GrafeasInTotoOccurrence:
       }
     )
 
+  @staticmethod
   def load(path):
     """ Given a path, load the occurrence.json into GrafeasIntotoOccurrence class """
     with open(path, "r") as occ_f:
       occ_json = json.load(occ_f)
-    
-    intoto_block = Metablock(signed=occ_json["intoto"]["signed"],
-        signatures=occ_json["intoto"]["signatures"])
-    
-    return GrafeasInTotoOccurrence(intoto_block, "test-link", "test-resource-uri")
+
+    grafeas_occurrence = GrafeasInTotoOccurrence()
+    grafeas_occurrence.intoto['signed'] = GrafeasLink(occ_json['intoto']['signed']['materials'],
+                                                      occ_json['intoto']['signed']['products'],
+                                                      occ_json['intoto']['signed']['command'],
+                                                      occ_json['intoto']['signed']['byproducts'],
+                                                      occ_json['intoto']['signed']['environment'])
+    grafeas_occurrence.intoto['signatures'] = occ_json['intoto']['signatures']
+    grafeas_occurrence.resource['uri'] = occ_json['resource']['uri']
+    grafeas_occurrence.noteName = occ_json['noteName']
+    return grafeas_occurrence
     
 
 '''
@@ -93,8 +118,6 @@ def create_in_toto_link_from_grafeas_occurrence(grafeas_occurrence, step_name):
   byproducts = {}
   environment = {}
 
-  #import pdb; pdb.set_trace()
-  
   for item in grafeas_occurrence.intoto["signed"].materials:
     materials[item["resource_uri"]] = item["hashes"]
 
@@ -121,7 +144,14 @@ def create_in_toto_link_from_grafeas_occurrence(grafeas_occurrence, step_name):
 
   in_toto_link = Link(name=step_name, materials=materials, products=products, byproducts=byproducts, command=command, environment=environment)
 
-  return Metablock(signed=in_toto_link, signatures=grafeas_occurrence.intoto["signatures"])
+  signatures = []
+  for signature in grafeas_occurrence.intoto["signatures"]:
+    if "sig" not in signature:
+      signatures.append({"keyid": signature["keyid"], "sig": signature["signature"]})
+    else:
+      signatures.append(signature)
+
+  return Metablock(signed=in_toto_link, signatures=signatures)
 
 
 class GrafeasInTotoTransport:
