@@ -16,14 +16,14 @@ class GrafeasLink:
 
     if isinstance(link_materials, dict):
       for item in link_materials:
-        self.materials.append(item)
+        self.materials.append({"resource_uri": item, "hashes": link_materials[item]})
     elif isinstance(link_materials, list):
       self.materials = link_materials
     # else raise exception
 
     if isinstance(link_products, dict):
       for item in link_products:
-        self.products.append(item)
+        self.products.append({"resource_uri": item, "hashes": link_products[item]})
     elif isinstance(link_products, list):
       self.products = link_products
     # else raise exception
@@ -35,7 +35,10 @@ class GrafeasLink:
       self.byproducts = link_byproducts
     else:
       for key, value in link_byproducts.items():
-        self.byproducts["custom_values"][key] = value
+        if key == "return-value":
+          self.byproducts["custom_values"][key] = str(value)
+        else:
+          self.byproducts["custom_values"][key] = value
 
     if "custom_values" in link_environment:
       # this could cause problems when "custom_values" is an actual field
@@ -59,11 +62,11 @@ class GrafeasInTotoOccurrence:
 
   def __init__(self, in_toto_link=None, note_name=None, resource_uri=None):
     if in_toto_link:
-      self.intoto["signed"] = GrafeasLink(in_toto_link.signed["materials"],
-                                          in_toto_link.signed["products"],
-                                          in_toto_link.signed["command"],
-                                          in_toto_link.signed["byproducts"],
-                                          in_toto_link.signed["environment"])
+      self.intoto["signed"] = GrafeasLink(in_toto_link.signed.materials,
+                                          in_toto_link.signed.products,
+                                          in_toto_link.signed.command,
+                                          in_toto_link.signed.byproducts,
+                                          in_toto_link.signed.environment)
       for signature in in_toto_link.signatures:
         self.intoto["signatures"].append({"keyid": signature["keyid"], "signature": signature["sig"]})
 
@@ -132,7 +135,10 @@ def create_in_toto_link_from_grafeas_occurrence(grafeas_occurrence, step_name):
     byproducts[key] = value
 
   for key, value in grafeas_occurrence.intoto["signed"].byproducts["custom_values"].items():
-    byproducts[key] = value
+    if key == "return-value":
+      byproducts[key] = int(value)  # cast return-value back to int
+    else:
+      byproducts[key] = value
 
   for key, value in grafeas_occurrence.intoto["signed"].environment.items():
     if key == "custom_values":
