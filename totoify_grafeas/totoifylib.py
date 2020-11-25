@@ -1,3 +1,21 @@
+"""
+<Program Name>
+  totoifylib.py
+
+<Author>
+  Aditya Sirish <aditya@saky.in>
+  Kristel Fung <kristelfung@berkeley.edu>
+
+<Started>
+  Sep 5, 2020
+
+<Copyright>
+  See LICENSE for licensing information.
+
+<Purpose>
+  Conversion library for Grafeas occurrences and and in-toto link metadata.
+"""
+
 from in_toto.models.link import Link
 from in_toto.models.metadata import Metablock
 import requests
@@ -5,6 +23,18 @@ import json
 
 
 class GrafeasLink:
+  """Wrapper for in-toto 'signed' fields.
+  
+  Used in the GrafeasInTotoOccurrence class to organize in-toto "signed"
+  attributes (corresponding to in_toto.models.link.Link).
+  
+  Attributes:
+    command: A list of arguments used in the link's command.
+    environment: A dict of the environment where the command was executed.
+    byproducts: A dict containing byproducts of the command.
+    materials: A list of materials used in the command.
+    products: A list of dicts containing resource URI and hashes.
+  """
   command = []
   environment = {"custom_values": {}}
   byproducts = {"custom_values": {}}
@@ -13,6 +43,8 @@ class GrafeasLink:
 
   def __init__(self, link_materials, link_products, link_command,
       link_byproducts, link_environment):
+    """Takes in materials, products, command, byproducts and initalizes
+    to the GrafeasLink fields."""
 
     if isinstance(link_materials, dict):
       for item in link_materials:
@@ -50,6 +82,18 @@ class GrafeasLink:
 
 
 class GrafeasInTotoOccurrence:
+  """Wrapper to hold a Grafeas occurrence complete with in-toto metadata.
+  
+  Provides methods to dump occurrence fields into a json string, and to load
+  the occurrence file into the class.
+  
+  Attributes:
+    note_name: A string of the name of the note.
+    kind: Set to the string "INTOTO" to indicate the type of occurrence.
+    resource: A dict of resource uri.
+    intoto: A dictionary with key "signatures", a list of signatures consisting
+        of key id and signature hash, and key "signed", the GrafeasLink class.
+  """
   note_name = None
   kind = "INTOTO"
   resource = {
@@ -61,6 +105,7 @@ class GrafeasInTotoOccurrence:
   }
 
   def __init__(self, in_toto_link=None, note_name=None, resource_uri=None):
+    """Initalizes intoto "signed" fields with a GrafeasLink."""
     if in_toto_link:
       self.intoto["signed"] = GrafeasLink(in_toto_link.signed.materials,
                                           in_toto_link.signed.products,
@@ -75,6 +120,7 @@ class GrafeasInTotoOccurrence:
     self.resource["uri"] = resource_uri
 
   def to_json(self):
+    """Returns the JSON string representation."""
     return json.dumps({
         "resource": self.resource,
         "noteName": self.note_name,
@@ -85,7 +131,7 @@ class GrafeasInTotoOccurrence:
 
   @staticmethod
   def load(path):
-    """ Given a path, load the occurrence.json into GrafeasIntotoOccurrence class """
+    """Given a path, loads the occurrence.json into GrafeasInTotoOccurrence class."""
     with open(path, "r") as occ_f:
       occ_json = json.load(occ_f)
 
@@ -99,22 +145,48 @@ class GrafeasInTotoOccurrence:
     grafeas_occurrence.resource['uri'] = occ_json['resource']['uri']
     grafeas_occurrence.noteName = occ_json['noteName']
     return grafeas_occurrence
-    
 
-'''
-accepts a link of type in_toto.models.metadata.Metablock (and we know that "signed" corresponds to an object of type in_toto.models.link.Link)
-returns an object of GrafeasInTotoOccurrence
-'''
+
+
 def create_grafeas_occurrence_from_in_toto_link(in_toto_link, step_name, resource_uri):
+  """Creates a GrafeasInTotoOccurrence class from an in-toto link Metablock class.
+  
+  Arguments:
+    in_toto_link: A link of type Metablock (and we know that "signed" corresponds
+        to an object of type in_toto.models.link.Link)
+    step_name: A string of the step name
+    resource_uri: A string of the resource URI
+
+  Raises:
+    N/A
+
+  Side Effects:
+    N/A
+
+  Returns:
+    A GrafeasInTotoOccurrence object.
+  """
   # TODO: set step_name from link if None
   return GrafeasInTotoOccurrence(in_toto_link, step_name, resource_uri)
 
-'''
-accepts a grafeas occurrence of type totoify_grafeas.GrafeasInTotoOccurrence
-returns an object of type in_toto.models.metadata.Metablock (and again we know that "signed" corresponds to in_toto.models.link.Link)
-'''
+
 
 def create_in_toto_link_from_grafeas_occurrence(grafeas_occurrence, step_name):
+  """Creates an in-toto link Metablock class from a GrafeasOccurrence class.
+  
+  Arguments:
+    grafeas_occurrence: An occurrence of type GrafeasInTotoOccurrence.
+    step_name: A string of the step name.
+
+  Raises:
+    N/A
+
+  Side Effects:
+    N/A
+
+  Returns:
+    A Metablock object.
+  """
   materials = {}
   products = {}
   command = []
