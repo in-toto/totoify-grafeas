@@ -24,10 +24,10 @@ import json
 
 class GrafeasLink:
   """Wrapper for in-toto 'signed' fields.
-  
+
   Used in the GrafeasInTotoOccurrence class to organize in-toto "signed"
   attributes (corresponding to in_toto.models.link.Link).
-  
+
   Attributes:
     command: A list of arguments used in the link's command.
     environment: A dict of the environment where the command was executed.
@@ -58,10 +58,10 @@ class GrafeasLink:
         self.products.append({"resource_uri": item, "hashes": link_products[item]})
     elif isinstance(link_products, list):
       self.products = link_products
-    # else raise exception
+    # else TODO: raise exception
 
     self.command = link_command
-    
+
     if "custom_values" in link_byproducts:
       # this could cause problems when "custom_values" is an actual field
       self.byproducts = link_byproducts
@@ -79,14 +79,31 @@ class GrafeasLink:
       for key, value in link_environment.items():
         self.environment["custom_values"][key] = value
 
+  def __repr__(self):
+    return json.dumps({
+        "command": self.command,
+        "materials": self.materials,
+        "products": self.products,
+        "environment": self.environment,
+        "byproducts": self.byproducts
+    })
+
+  def to_dict(self):
+    return {
+        "command": self.command,
+        "materials": self.materials,
+        "products": self.products,
+        "environment": self.environment,
+        "byproducts": self.byproducts
+      }
 
 
 class GrafeasInTotoOccurrence:
   """Wrapper to hold a Grafeas occurrence complete with in-toto metadata.
-  
+
   Provides methods to dump occurrence fields into a json string, and to load
   the occurrence file into the class.
-  
+
   Attributes:
     note_name: A string of the name of the note.
     kind: Set to the string "INTOTO" to indicate the type of occurrence.
@@ -119,15 +136,30 @@ class GrafeasInTotoOccurrence:
 
     self.resource["uri"] = resource_uri
 
-  def to_json(self):
+  def to_json(self, file_path=None):
     """Returns the JSON string representation."""
-    return json.dumps({
-        "resource": self.resource,
-        "noteName": self.note_name,
-        "kind": self.kind,
-        "intoto": self.intoto
-      }
-    )
+    if file_path:
+      with open(file_path, "w") as fp:
+        json.dump({
+            "resource": self.resource,
+            "noteName": self.note_name,
+            "kind": self.kind,
+            "intoto": {
+              "signatures": self.intoto["signatures"],
+              "signed": self.intoto["signed"].to_dict()
+            }
+          }, fp, indent=4)
+    else:
+      return json.dumps({
+          "resource": self.resource,
+          "noteName": self.note_name,
+          "kind": self.kind,
+          "intoto": {
+            "signatures": self.intoto["signatures"],
+            "signed": self.intoto["signed"].to_dict()
+          }
+        }
+      )
 
   @staticmethod
   def load(path):
@@ -150,7 +182,7 @@ class GrafeasInTotoOccurrence:
 
 def create_grafeas_occurrence_from_in_toto_link(in_toto_link, step_name, resource_uri):
   """Creates a GrafeasInTotoOccurrence class from an in-toto link Metablock class.
-  
+
   Arguments:
     in_toto_link: A link of type Metablock (and we know that "signed" corresponds
         to an object of type in_toto.models.link.Link)
@@ -172,8 +204,8 @@ def create_grafeas_occurrence_from_in_toto_link(in_toto_link, step_name, resourc
 
 
 def create_in_toto_link_from_grafeas_occurrence(grafeas_occurrence, step_name):
-  """Creates an in-toto link Metablock class from a GrafeasOccurrence class.
-  
+  """Creates an in-toto link Metablock class from a GrafeasInTotoOccurrence class.
+
   Arguments:
     grafeas_occurrence: An occurrence of type GrafeasInTotoOccurrence.
     step_name: A string of the step name.
