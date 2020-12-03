@@ -35,49 +35,68 @@ class GrafeasLink:
     materials: A list of materials used in the command.
     products: A list of dicts containing resource URI and hashes.
   """
-  command = []
-  environment = {"custom_values": {}}
-  byproducts = {"custom_values": {}}
-  materials = []
-  products = []
 
-  def __init__(self, link_materials, link_products, link_command,
-      link_byproducts, link_environment):
+  materials = None
+  products = None
+  command = None
+  byproducts = None
+  environment = None
+
+  def __init__(self, materials=None, products=None, command=None,
+      byproducts=None, environment=None):
     """Takes in materials, products, command, byproducts and initalizes
     to the GrafeasLink fields."""
 
-    if isinstance(link_materials, dict):
-      for item in link_materials:
-        self.materials.append({"resource_uri": item, "hashes": link_materials[item]})
-    elif isinstance(link_materials, list):
-      self.materials = link_materials
-    # else raise exception
+    if materials is None:
+      self.materials = []
+    elif isinstance(materials, list):
+      self.materials = materials
 
-    if isinstance(link_products, dict):
-      for item in link_products:
-        self.products.append({"resource_uri": item, "hashes": link_products[item]})
-    elif isinstance(link_products, list):
-      self.products = link_products
-    # else TODO: raise exception
+    if products is None:
+      self.products = []
+    elif isinstance(products, list):
+      self.products = products
 
-    self.command = link_command
+    if command is None:
+      self.command = []
+    elif isinstance(command, list):
+      self.command = command
 
-    if "custom_values" in link_byproducts:
-      # this could cause problems when "custom_values" is an actual field
-      self.byproducts = link_byproducts
-    else:
-      for key, value in link_byproducts.items():
-        if key == "return-value":
-          self.byproducts["custom_values"][key] = str(value)
-        else:
-          self.byproducts["custom_values"][key] = value
+    if byproducts is None:
+      self.byproducts = {"custom_values": {}}
+    elif isinstance(byproducts, dict):
+      self.byproducts = byproducts
 
-    if "custom_values" in link_environment:
-      # this could cause problems when "custom_values" is an actual field
-      self.environment = link_environment
-    else:
-      for key, value in link_environment.items():
-        self.environment["custom_values"][key] = value
+    if environment is None:
+      self.environment = {"custom_values": {}}
+    elif isinstance(environment, dict):
+      self.environment = environment
+
+  @staticmethod
+  def from_link(link):
+    link.validate()
+
+    grafeas_link = GrafeasLink()
+
+    # materials and products
+    for item in link.materials:
+      grafeas_link.materials.append({"resource_uri": item, "hashes": link.materials[item]})
+
+    for item in link.products:
+      grafeas_link.products.append({"resource_uri": item, "hashes": link.products[item]})
+
+    grafeas_link.command = link.command
+
+    for key, value in link.byproducts.items():
+      if key == "return-value":
+        grafeas_link.byproducts["custom_values"][key] = str(value)
+      else:
+        grafeas_link.byproducts["custom_values"][key] = value
+
+    for key, value in link.environment.items():
+      grafeas_link.environment["custom_values"][key] = value
+
+    return grafeas_link
 
   def __repr__(self):
     return json.dumps({
