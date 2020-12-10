@@ -143,11 +143,8 @@ class GrafeasInTotoOccurrence:
   def __init__(self, in_toto_link=None, note_name=None, resource_uri=None):
     """Initalizes intoto "signed" fields with a GrafeasLink."""
     if in_toto_link:
-      self.intoto["signed"] = GrafeasLink(in_toto_link.signed.materials,
-                                          in_toto_link.signed.products,
-                                          in_toto_link.signed.command,
-                                          in_toto_link.signed.byproducts,
-                                          in_toto_link.signed.environment)
+      self.intoto["signed"] = GrafeasLink.from_link(in_toto_link.signed)
+      self.intoto["signatures"] = []
       for signature in in_toto_link.signatures:
         self.intoto["signatures"].append({"keyid": signature["keyid"], "signature": signature["sig"]})
 
@@ -196,91 +193,61 @@ class GrafeasInTotoOccurrence:
     grafeas_occurrence.resource['uri'] = occ_json['resource']['uri']
     grafeas_occurrence.noteName = occ_json['noteName']
     return grafeas_occurrence
+  
+  @staticmethod
+  def from_link(in_toto_link, step_name, resource_uri):
+    """Returns a GrafeasInTotoOccurrence class from an In-toto Metablock,
+    stepname, and resource uri."""
+    # TODO: set step_name from link if None
+    return GrafeasInTotoOccurrence(in_toto_link, step_name, resource_uri)
+  
+  def to_link(self, step_name):
+    """Returns an in-toto link Metablock class from a GrafeasInTotoOccurrence class."""
+    materials = {}
+    products = {}
+    command = []
+    byproducts = {}
+    environment = {}
+    
+    for item in self.intoto["signed"].materials:
+      materials[item["resource_uri"]] = item["hashes"]
 
+    for item in self.intoto["signed"].products:
+      products[item["resource_uri"]] = item["hashes"]
 
+    command = self.intoto["signed"].command
 
-def create_grafeas_occurrence_from_in_toto_link(in_toto_link, step_name, resource_uri):
-  """Creates a GrafeasInTotoOccurrence class from an in-toto link Metablock class.
-
-  Arguments:
-    in_toto_link: A link of type Metablock (and we know that "signed" corresponds
-        to an object of type in_toto.models.link.Link)
-    step_name: A string of the step name
-    resource_uri: A string of the resource URI
-
-  Raises:
-    N/A
-
-  Side Effects:
-    N/A
-
-  Returns:
-    A GrafeasInTotoOccurrence object.
-  """
-  # TODO: set step_name from link if None
-  return GrafeasInTotoOccurrence(in_toto_link, step_name, resource_uri)
-
-
-
-def create_in_toto_link_from_grafeas_occurrence(grafeas_occurrence, step_name):
-  """Creates an in-toto link Metablock class from a GrafeasInTotoOccurrence class.
-
-  Arguments:
-    grafeas_occurrence: An occurrence of type GrafeasInTotoOccurrence.
-    step_name: A string of the step name.
-
-  Raises:
-    N/A
-
-  Side Effects:
-    N/A
-
-  Returns:
-    A Metablock object.
-  """
-  materials = {}
-  products = {}
-  command = []
-  byproducts = {}
-  environment = {}
-
-  for item in grafeas_occurrence.intoto["signed"].materials:
-    materials[item["resource_uri"]] = item["hashes"]
-
-  for item in grafeas_occurrence.intoto["signed"].products:
-    products[item["resource_uri"]] = item["hashes"]
-
-  command = grafeas_occurrence.intoto["signed"].command
-
-  for key, value in grafeas_occurrence.intoto["signed"].byproducts.items():
-    if key == "custom_values":
-      continue
-    byproducts[key] = value
-
-  for key, value in grafeas_occurrence.intoto["signed"].byproducts["custom_values"].items():
-    if key == "return-value":
-      byproducts[key] = int(value)  # cast return-value back to int
-    else:
+    for key, value in self.intoto["signed"].byproducts.items():
+      if key == "custom_values":
+        continue
       byproducts[key] = value
 
-  for key, value in grafeas_occurrence.intoto["signed"].environment.items():
-    if key == "custom_values":
-      continue
-    environment[key] = value
+    if "custom_values" in self.intoto["signed"].byproducts:
+      for key, value in self.intoto["signed"].byproducts["custom_values"].items():
+        if key == "return-value":
+          byproducts[key] = int(value)  # cast return-value back to int
+        else:
+          byproducts[key] = value
 
-  for key, value in grafeas_occurrence.intoto["signed"].environment["custom_values"].items():
-    environment[key] = value
+    for key, value in self.intoto["signed"].environment.items():
+      if key == "custom_values":
+        continue
+      environment[key] = value
 
-  in_toto_link = Link(name=step_name, materials=materials, products=products, byproducts=byproducts, command=command, environment=environment)
+    if "custom_values" in self.intoto["signed"].environment:
+      for key, value in self.intoto["signed"].environment["custom_values"].items():
+        environment[key] = value
 
-  signatures = []
-  for signature in grafeas_occurrence.intoto["signatures"]:
-    if "sig" not in signature:
-      signatures.append({"keyid": signature["keyid"], "sig": signature["signature"]})
-    else:
-      signatures.append(signature)
+    in_toto_link = Link(name=step_name, materials=materials, products=products, byproducts=byproducts, command=command, environment=environment)
 
-  return Metablock(signed=in_toto_link, signatures=signatures)
+    signatures = []
+    for signature in self.intoto["signatures"]:
+      if "sig" not in signature:
+        signatures.append({"keyid": signature["keyid"], "sig": signature["signature"]})
+      else:
+        signatures.append(signature)
+
+    return Metablock(signed=in_toto_link, signatures=signatures)
 
 
 class GrafeasInTotoTransport:
