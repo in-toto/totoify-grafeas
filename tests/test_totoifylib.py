@@ -34,14 +34,14 @@ from securesystemslib import interface
 class TestCreateInTotoLinkFromOccurrence(unittest.TestCase):
   """Tests conversion of a Grafeas occurrence to an in-toto link."""
   def test_create_in_toto_link_from_grafeas_occurrence(self):
-    grafeas_occurrence = GrafeasInTotoOccurrence.load("clone_occurrence.json")
+    grafeas_occurrence = GrafeasInTotoOccurrence.load("occurrences/clone_occurrence.json")
     in_toto_link = grafeas_occurrence.to_link("clone-step-name")
     assert isinstance(in_toto_link, Metablock)
 
 class TestCreateOccurranceFromInTotoLink(unittest.TestCase):
   """Tests conversion of a in-toto link to a Grafeas occurrence."""
   def test_create_grafeas_occurrence_from_in_toto_link(self):
-    in_toto_link = Metablock.load("clone_link.json")
+    in_toto_link = Metablock.load("links/clone_link.json")
     grafeas_occurrence = GrafeasInTotoOccurrence.from_link(in_toto_link, "clone-step", "clone-resource-uri")
 
     assert isinstance(grafeas_occurrence, GrafeasInTotoOccurrence)
@@ -130,17 +130,17 @@ class TestInTotoVerify(unittest.TestCase):
   def test_grafeas_occurrence_to_in_toto_link_verify(self): # invalidly signed
     """Test in-toto-verify on in-toto link generated from Grafeas occurrence."""
     # Clone Step
-    grafeas_occurrence_clone = GrafeasInTotoOccurrence.load("clone_occurrence.json")
+    grafeas_occurrence_clone = GrafeasInTotoOccurrence.load("occurrences/clone_occurrence.json")
     in_toto_link_clone = grafeas_occurrence_clone.to_link("clone")
     in_toto_link_clone.dump("in-toto-verify-links/clone.776a00e2.link")
 
     # Update Step
-    grafeas_occurrence_update = GrafeasInTotoOccurrence.load("update_occurrence.json")
+    grafeas_occurrence_update = GrafeasInTotoOccurrence.load("occurrences/update_occurrence.json")
     in_toto_link_update = grafeas_occurrence_update.to_link("update-version")
     in_toto_link_update.dump("in-toto-verify-links/update-version.776a00e2.link")
     
     # Package Step
-    grafeas_occurrence_package = GrafeasInTotoOccurrence.load("package_occurrence.json")
+    grafeas_occurrence_package = GrafeasInTotoOccurrence.load("occurrences/package_occurrence.json")
     in_toto_link_package = grafeas_occurrence_package.to_link("package")
     in_toto_link_package.dump("in-toto-verify-links/package.2f89b927.link")
 
