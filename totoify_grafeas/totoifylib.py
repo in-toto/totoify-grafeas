@@ -43,7 +43,7 @@ class GrafeasLink:
   environment = None
 
   def __init__(self, materials=None, products=None, command=None,
-      byproducts=None, environment=None):
+               byproducts=None, environment=None):
     """Takes in materials, products, command, byproducts and initalizes
     to the GrafeasLink fields."""
 
@@ -80,10 +80,12 @@ class GrafeasLink:
 
     # materials and products
     for item in link.materials:
-      grafeas_link.materials.append({"resource_uri": item, "hashes": link.materials[item]})
+      grafeas_link.materials.append({"resource_uri": item,
+                                     "hashes": link.materials[item]})
 
     for item in link.products:
-      grafeas_link.products.append({"resource_uri": item, "hashes": link.products[item]})
+      grafeas_link.products.append({"resource_uri": item,
+                                    "hashes": link.products[item]})
 
     grafeas_link.command = link.command
 
@@ -146,7 +148,8 @@ class GrafeasInTotoOccurrence:
       self.intoto["signed"] = GrafeasLink.from_link(in_toto_link.signed)
       self.intoto["signatures"] = []
       for signature in in_toto_link.signatures:
-        self.intoto["signatures"].append({"keyid": signature["keyid"], "signature": signature["sig"]})
+        self.intoto["signatures"].append({"keyid": signature["keyid"],
+                                          "signature": signature["sig"]})
 
     self.note_name = note_name
 
@@ -179,36 +182,41 @@ class GrafeasInTotoOccurrence:
 
   @staticmethod
   def load(path):
-    """Given a path, loads the occurrence.json into GrafeasInTotoOccurrence class."""
+    """Given a path, loads the occurrence.json into GrafeasInTotoOccurrence
+    class.
+    """
     with open(path, "r") as occ_f:
       occ_json = json.load(occ_f)
 
     grafeas_occurrence = GrafeasInTotoOccurrence()
-    grafeas_occurrence.intoto['signed'] = GrafeasLink(occ_json['intoto']['signed']['materials'],
-                                                      occ_json['intoto']['signed']['products'],
-                                                      occ_json['intoto']['signed']['command'],
-                                                      occ_json['intoto']['signed']['byproducts'],
-                                                      occ_json['intoto']['signed']['environment'])
+    grafeas_occurrence.intoto['signed'] = \
+        GrafeasLink(occ_json['intoto']['signed']['materials'],
+                    occ_json['intoto']['signed']['products'],
+                    occ_json['intoto']['signed']['command'],
+                    occ_json['intoto']['signed']['byproducts'],
+                    occ_json['intoto']['signed']['environment'])
     grafeas_occurrence.intoto['signatures'] = occ_json['intoto']['signatures']
     grafeas_occurrence.resource['uri'] = occ_json['resource']['uri']
     grafeas_occurrence.noteName = occ_json['noteName']
     return grafeas_occurrence
-  
+
   @staticmethod
   def from_link(in_toto_link, step_name, resource_uri):
     """Returns a GrafeasInTotoOccurrence class from an In-toto Metablock,
     stepname, and resource uri."""
     # TODO: set step_name from link if None
     return GrafeasInTotoOccurrence(in_toto_link, step_name, resource_uri)
-  
+
   def to_link(self, step_name):
-    """Returns an in-toto link Metablock class from a GrafeasInTotoOccurrence class."""
+    """Returns an in-toto link Metablock class from a GrafeasInTotoOccurrence
+    class.
+    """
     materials = {}
     products = {}
     command = []
     byproducts = {}
     environment = {}
-    
+
     for item in self.intoto["signed"].materials:
       materials[item["resource_uri"]] = item["hashes"]
 
@@ -223,7 +231,8 @@ class GrafeasInTotoOccurrence:
       byproducts[key] = value
 
     if "custom_values" in self.intoto["signed"].byproducts:
-      for key, value in self.intoto["signed"].byproducts["custom_values"].items():
+      for key, value in \
+          self.intoto["signed"].byproducts["custom_values"].items():
         if key == "return-value":
           byproducts[key] = int(value)  # cast return-value back to int
         else:
@@ -235,29 +244,23 @@ class GrafeasInTotoOccurrence:
       environment[key] = value
 
     if "custom_values" in self.intoto["signed"].environment:
-      for key, value in self.intoto["signed"].environment["custom_values"].items():
+      for key, value in \
+          self.intoto["signed"].environment["custom_values"].items():
         environment[key] = value
 
-    in_toto_link = Link(name=step_name, materials=materials, products=products, byproducts=byproducts, command=command, environment=environment)
+    in_toto_link = Link(name=step_name,
+                        materials=materials,
+                        products=products,
+                        byproducts=byproducts,
+                        command=command,
+                        environment=environment)
 
     signatures = []
     for signature in self.intoto["signatures"]:
       if "sig" not in signature:
-        signatures.append({"keyid": signature["keyid"], "sig": signature["signature"]})
+        signatures.append({"keyid": signature["keyid"],
+                           "sig": signature["signature"]})
       else:
         signatures.append(signature)
 
     return Metablock(signed=in_toto_link, signatures=signatures)
-
-
-class GrafeasInTotoTransport:
-  server_url = None
-
-  def __init__(self, server_url):
-    self.server_url = server_url
-
-  def dispatch(self, in_toto_link, note_name, resource_uri):
-    grafeas_occurrence = GrafeasInTotoOccurrence(
-        in_toto_link, note_name, resource_uri)
-
-    response = requests.post(self.server_url, data=grafeas_occurrence.to_json())

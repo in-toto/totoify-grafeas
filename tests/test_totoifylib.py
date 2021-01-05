@@ -18,10 +18,7 @@
 
 import unittest
 import os
-import json
 from totoify_grafeas.totoifylib import (
-    #create_grafeas_occurrence_from_in_toto_link,
-    #create_in_toto_link_from_grafeas_occurrence,
     GrafeasInTotoTransport,
     GrafeasInTotoOccurrence,
     GrafeasLink)
@@ -146,33 +143,6 @@ class TestInTotoVerify(unittest.TestCase):
 
     in_toto_verify(self.metadata, self.layout_key_dict, link_dir_path="in-toto-verify-links")
 
-  #def test_link_occurrence_link_verify(self): # nonetype bug
-  #  """Test in-toto-verify on in-toto link converted to Grafeas occurrence
-  #  and back to an in-toto link."""
-  #  # Clone Step
-  #  in_toto_link_clone = Metablock.load("clone_link.json")
-  #  grafeas_occurrence_clone = GrafeasInTotoOccurrence.from_link(in_toto_link_clone, "clone-step-name", "demo-project/foo.py")
-  #  new_in_toto_link_clone = grafeas_occurrence_clone.to_link("clone-step-name")
-  #  new_in_toto_link_clone.dump("in-toto-verify-links/clone.776a00e2.link")
-
-  #  in_toto_verify(self.layout_metablock_clone, self.layout_key_dict,
-  #    link_dir_path="in-toto-verify-links")
-
-  #  # Update Step
-  #  in_toto_link_update = Metablock.load("update_link.json")
-  #  grafeas_occurrence_update = GrafeasInTotoOccurrence.from_link(in_toto_link_update, "update-step-name", "demo-project/foo.py")
-  #  new_in_toto_link_update = grafeas_occurrence_update.to_link("update-step-name")
-  #  new_in_toto_link_update.dump("in-toto-verify-links/update-version.776a00e2.link")
-
-  #  in_toto_verify(self.layout, self.layout_key_dict, link_dir_path="in-toto-verify-links")
-  #  
-  #  # Package Step
-  #  in_toto_link_package = Metablock.load("package_link.json")
-  #  grafeas_occurrence_update = GrafeasInTotoOccurrence.from_link(in_toto_link_update, "package-step-name", "demo-project/foo.py")
-  #  new_in_toto_link_update = grafeas_occurrence_update.to_link("package-step-name")
-  #  new_in_toto_link_update.dump("in-toto-verify-links/package.2f89b927.link")
-
-  #  in_toto_verify(self.layout, self.layout_key_dict, link_dir_path="in-toto-verify-links")
 
 if __name__ == "__main__":
   unittest.main()
