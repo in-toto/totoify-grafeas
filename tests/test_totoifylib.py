@@ -18,10 +18,7 @@
 
 import unittest
 import os
-from totoify_grafeas.totoifylib import (
-    GrafeasInTotoTransport,
-    GrafeasInTotoOccurrence,
-    GrafeasLink)
+from totoify_grafeas.totoifylib import GrafeasInTotoOccurrence
 from in_toto.models.metadata import Metablock
 from in_toto.verifylib import in_toto_verify
 from in_toto.models.layout import Layout
@@ -31,17 +28,22 @@ from securesystemslib import interface
 class TestCreateInTotoLinkFromOccurrence(unittest.TestCase):
   """Tests conversion of a Grafeas occurrence to an in-toto link."""
   def test_create_in_toto_link_from_grafeas_occurrence(self):
-    grafeas_occurrence = GrafeasInTotoOccurrence.load("occurrences/clone_occurrence.json")
+    grafeas_occurrence = \
+        GrafeasInTotoOccurrence.load("occurrences/clone_occurrence.json")
     in_toto_link = grafeas_occurrence.to_link("clone-step-name")
     assert isinstance(in_toto_link, Metablock)
+
 
 class TestCreateOccurranceFromInTotoLink(unittest.TestCase):
   """Tests conversion of a in-toto link to a Grafeas occurrence."""
   def test_create_grafeas_occurrence_from_in_toto_link(self):
     in_toto_link = Metablock.load("links/clone_link.json")
-    grafeas_occurrence = GrafeasInTotoOccurrence.from_link(in_toto_link, "clone-step", "clone-resource-uri")
+    grafeas_occurrence = \
+        GrafeasInTotoOccurrence.from_link(in_toto_link, "clone-step",
+                                          "clone-resource-uri")
 
     assert isinstance(grafeas_occurrence, GrafeasInTotoOccurrence)
+
 
 class TestInTotoVerify(unittest.TestCase):
   """Runs in-toto verify on generated in-toto links."""
@@ -64,7 +66,8 @@ class TestInTotoVerify(unittest.TestCase):
         "steps": [{
             "name": "clone",
             "expected_materials": [],
-            "expected_products": [["CREATE", "demo-project/foo.py"], ["DISALLOW", "*"]],
+            "expected_products": [["CREATE", "demo-project/foo.py"],
+                                  ["DISALLOW", "*"]],
             "pubkeys": [self.key_bob["keyid"]],
             "expected_command": [
                 "git",
@@ -72,15 +75,17 @@ class TestInTotoVerify(unittest.TestCase):
                 "https://github.com/in-toto/demo-project.git"
             ],
             "threshold": 1,
-          },{
+          }, {
             "name": "update-version",
-            "expected_materials": [["MATCH", "demo-project/*", "WITH", "PRODUCTS",
-                                  "FROM", "clone"], ["DISALLOW", "*"]],
-            "expected_products": [["ALLOW", "demo-project/foo.py"], ["DISALLOW", "*"]],
+            "expected_materials": [["MATCH", "demo-project/*", "WITH",
+                                    "PRODUCTS", "FROM", "clone"],
+                                   ["DISALLOW", "*"]],
+            "expected_products": [["ALLOW", "demo-project/foo.py"],
+                                  ["DISALLOW", "*"]],
             "pubkeys": [self.key_bob["keyid"]],
             "expected_command": [],
             "threshold": 1,
-          },{
+          }, {
             "name": "package",
             "expected_materials": [
               ["MATCH", "demo-project/*", "WITH", "PRODUCTS", "FROM",
@@ -108,7 +113,8 @@ class TestInTotoVerify(unittest.TestCase):
 
     # Create the public key dict
     self.layout_key_dict = {}
-    self.layout_key_dict.update(interface.import_publickeys_from_file(["keys/alice.pub"]))
+    self.layout_key_dict.update(
+        interface.import_publickeys_from_file(["keys/alice.pub"]))
 
   def tearDown(self):
     try:
@@ -124,24 +130,31 @@ class TestInTotoVerify(unittest.TestCase):
     except OSError:
       pass
 
-  def test_grafeas_occurrence_to_in_toto_link_verify(self): # invalidly signed
-    """Test in-toto-verify on in-toto link generated from Grafeas occurrence."""
+  def test_grafeas_occurrence_to_in_toto_link_verify(self):
+    """Test in-toto-verify on in-toto link generated from Grafeas occurrence.
+    """
     # Clone Step
-    grafeas_occurrence_clone = GrafeasInTotoOccurrence.load("occurrences/clone_occurrence.json")
+    grafeas_occurrence_clone = \
+        GrafeasInTotoOccurrence.load("occurrences/clone_occurrence.json")
     in_toto_link_clone = grafeas_occurrence_clone.to_link("clone")
     in_toto_link_clone.dump("in-toto-verify-links/clone.776a00e2.link")
 
     # Update Step
-    grafeas_occurrence_update = GrafeasInTotoOccurrence.load("occurrences/update_occurrence.json")
+    grafeas_occurrence_update = \
+        GrafeasInTotoOccurrence.load("occurrences/update_occurrence.json")
     in_toto_link_update = grafeas_occurrence_update.to_link("update-version")
-    in_toto_link_update.dump("in-toto-verify-links/update-version.776a00e2.link")
-    
+    in_toto_link_update.dump(
+        "in-toto-verify-links/update-version.776a00e2.link")
+
     # Package Step
-    grafeas_occurrence_package = GrafeasInTotoOccurrence.load("occurrences/package_occurrence.json")
+    grafeas_occurrence_package = \
+        GrafeasInTotoOccurrence.load("occurrences/package_occurrence.json")
     in_toto_link_package = grafeas_occurrence_package.to_link("package")
     in_toto_link_package.dump("in-toto-verify-links/package.2f89b927.link")
 
-    in_toto_verify(self.metadata, self.layout_key_dict, link_dir_path="in-toto-verify-links")
+    in_toto_verify(self.metadata,
+                   self.layout_key_dict,
+                   link_dir_path="in-toto-verify-links")
 
 
 if __name__ == "__main__":
