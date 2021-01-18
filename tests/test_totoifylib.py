@@ -18,11 +18,13 @@
 
 import unittest
 import os
-from totoify_grafeas.totoifylib import GrafeasInTotoOccurrence
+
+from in_toto.models.layout import Layout
 from in_toto.models.metadata import Metablock
 from in_toto.verifylib import in_toto_verify
-from in_toto.models.layout import Layout
 from securesystemslib import interface
+
+from totoify_grafeas.totoifylib import GrafeasInTotoOccurrence
 
 
 class TestCreateInTotoLinkFromOccurrence(unittest.TestCase):
@@ -30,12 +32,15 @@ class TestCreateInTotoLinkFromOccurrence(unittest.TestCase):
   def test_create_in_toto_link_from_grafeas_occurrence(self):
     grafeas_occurrence = \
         GrafeasInTotoOccurrence.load("occurrences/clone_occurrence.json")
-    in_toto_link = grafeas_occurrence.to_link("clone-step-name")
-    assert isinstance(in_toto_link, Metablock)
+    in_toto_link = grafeas_occurrence.to_link("clone")
+    self.assertIsInstance(in_toto_link, Metablock)
+
+    in_toto_link_original = Metablock.load("links/clone_link.json")
+    self.assertEqual(in_toto_link, in_toto_link_original)
 
 
 class TestCreateOccurranceFromInTotoLink(unittest.TestCase):
-  """Tests conversion of a in-toto link to a Grafeas occurrence."""
+  """Tests conversion of an in-toto link to a Grafeas occurrence."""
   def test_create_grafeas_occurrence_from_in_toto_link(self):
     in_toto_link = Metablock.load("links/clone_link.json")
     grafeas_occurrence = \
@@ -152,6 +157,7 @@ class TestInTotoVerify(unittest.TestCase):
     in_toto_link_package = grafeas_occurrence_package.to_link("package")
     in_toto_link_package.dump("in-toto-verify-links/package.2f89b927.link")
 
+    # The test passes if in_toto_verify passes
     in_toto_verify(self.metadata,
                    self.layout_key_dict,
                    link_dir_path="in-toto-verify-links")

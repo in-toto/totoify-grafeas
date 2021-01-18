@@ -16,10 +16,10 @@
   Conversion library for Grafeas occurrences and and in-toto link metadata.
 """
 
+import json
+
 from in_toto.models.link import Link
 from in_toto.models.metadata import Metablock
-import requests
-import json
 
 
 class GrafeasLink:
@@ -35,12 +35,6 @@ class GrafeasLink:
     materials: A list of materials used in the command.
     products: A list of dicts containing resource URI and hashes.
   """
-
-  materials = None
-  products = None
-  command = None
-  byproducts = None
-  environment = None
 
   def __init__(self, materials=None, products=None, command=None,
                byproducts=None, environment=None):
@@ -63,6 +57,8 @@ class GrafeasLink:
       self.command = command
 
     if byproducts is None:
+      # In Grafeas, fields in byproducts and environment of an in-toto link
+      # go within a subfield, "custom_values".
       self.byproducts = {"custom_values": {}}
     elif isinstance(byproducts, dict):
       self.byproducts = byproducts
@@ -78,11 +74,11 @@ class GrafeasLink:
 
     grafeas_link = GrafeasLink()
 
-    # materials and products
+    # Convert artifact maps in in-toto links to list of artifact objects as
+    # defined in Grafeas: https://github.com/grafeas/grafeas/blob/master/proto/v1beta1/intoto.proto#L118-L139
     for item in link.materials:
       grafeas_link.materials.append({"resource_uri": item,
                                      "hashes": link.materials[item]})
-
     for item in link.products:
       grafeas_link.products.append({"resource_uri": item,
                                     "hashes": link.products[item]})
@@ -91,6 +87,10 @@ class GrafeasLink:
 
     for key, value in link.byproducts.items():
       if key == "return-value":
+        # This highlights a special case - in-toto's reference implementations
+        # store return value as an integer while Grafeas allows only strings.
+        # As noted above, Grafeas stores in-toto's byproducts and environment
+        # in a "custom_values" subfield.
         grafeas_link.byproducts["custom_values"][key] = str(value)
       else:
         grafeas_link.byproducts["custom_values"][key] = value
@@ -100,14 +100,56 @@ class GrafeasLink:
 
     return grafeas_link
 
+  def to_link(self, step_name):
+    materials = {}
+    products = {}
+    command = []
+    byproducts = {}
+    environment = {}
+
+    for item in self.materials:
+      materials[item["resource_uri"]] = item["hashes"]
+
+    for item in self.products:
+      products[item["resource_uri"]] = item["hashes"]
+
+    command = self.command
+
+    for key, value in self.byproducts.items():
+      if key == "custom_values":
+        continue
+      byproducts[key] = value
+
+    if "custom_values" in self.byproducts:
+      for key, value in \
+          self.byproducts["custom_values"].items():
+        if key == "return-value":
+          # This highlights a special case - in-toto's reference implementations
+          # store return value as an integer while Grafeas allows only strings
+          byproducts[key] = int(value)
+        else:
+          byproducts[key] = value
+
+    for key, value in self.environment.items():
+      if key == "custom_values":
+        continue
+      environment[key] = value
+
+    if "custom_values" in self.environment:
+      for key, value in \
+          self.environment["custom_values"].items():
+        environment[key] = value
+
+    return Link(name=step_name,
+                materials=materials,
+                products=products,
+                byproducts=byproducts,
+                command=command,
+                environment=environment)
+
+
   def __repr__(self):
-    return json.dumps({
-        "command": self.command,
-        "materials": self.materials,
-        "products": self.products,
-        "environment": self.environment,
-        "byproducts": self.byproducts
-    })
+    return json.dumps(self.to_dict())
 
   def to_dict(self):
     return {
@@ -132,18 +174,10 @@ class GrafeasInTotoOccurrence:
     intoto: A dictionary with key "signatures", a list of signatures consisting
         of key id and signature hash, and key "signed", the GrafeasLink class.
   """
-  note_name = None
-  kind = "INTOTO"
-  resource = {
-    "uri": None
-  }
-  intoto = {
-    "signatures":  [],
-    "signed": None
-  }
 
   def __init__(self, in_toto_link=None, note_name=None, resource_uri=None):
     """Initalizes intoto "signed" fields with a GrafeasLink."""
+    self.intoto = {}
     if in_toto_link:
       self.intoto["signed"] = GrafeasLink.from_link(in_toto_link.signed)
       self.intoto["signatures"] = []
@@ -152,33 +186,29 @@ class GrafeasInTotoOccurrence:
                                           "signature": signature["sig"]})
 
     self.note_name = note_name
-
-    self.resource["uri"] = resource_uri
+    self.kind = "INTOTO"
+    self.resource = {
+        "uri": resource_uri
+    }
 
   def to_json(self, file_path=None):
-    """Returns the JSON string representation."""
+    """Returns the JSON string representation. If file_path is provided,
+    a .json file is ALSO created at that location.
+    """
+    dict_repr = {
+      "resource": self.resource,
+      "noteName": self.note_name,
+      "kind": self.kind,
+      "intoto": {
+        "signatures": self.intoto["signatures"],
+        "signed": self.intoto["signed"].to_dict()
+      }
+    }
     if file_path:
       with open(file_path, "w") as fp:
-        json.dump({
-            "resource": self.resource,
-            "noteName": self.note_name,
-            "kind": self.kind,
-            "intoto": {
-              "signatures": self.intoto["signatures"],
-              "signed": self.intoto["signed"].to_dict()
-            }
-          }, fp, indent=4)
-    else:
-      return json.dumps({
-          "resource": self.resource,
-          "noteName": self.note_name,
-          "kind": self.kind,
-          "intoto": {
-            "signatures": self.intoto["signatures"],
-            "signed": self.intoto["signed"].to_dict()
-          }
-        }
-      )
+        json.dump(dict_repr, fp, indent=4)
+
+    return json.dumps(dict_repr)
 
   @staticmethod
   def load(path):
@@ -211,49 +241,51 @@ class GrafeasInTotoOccurrence:
     """Returns an in-toto link Metablock class from a GrafeasInTotoOccurrence
     class.
     """
-    materials = {}
-    products = {}
-    command = []
-    byproducts = {}
-    environment = {}
+    #materials = {}
+    #products = {}
+    #command = []
+    #byproducts = {}
+    #environment = {}
 
-    for item in self.intoto["signed"].materials:
-      materials[item["resource_uri"]] = item["hashes"]
+    #for item in self.intoto["signed"].materials:
+    #  materials[item["resource_uri"]] = item["hashes"]
 
-    for item in self.intoto["signed"].products:
-      products[item["resource_uri"]] = item["hashes"]
+    #for item in self.intoto["signed"].products:
+    #  products[item["resource_uri"]] = item["hashes"]
 
-    command = self.intoto["signed"].command
+    #command = self.intoto["signed"].command
 
-    for key, value in self.intoto["signed"].byproducts.items():
-      if key == "custom_values":
-        continue
-      byproducts[key] = value
+    #for key, value in self.intoto["signed"].byproducts.items():
+    #  if key == "custom_values":
+    #    continue
+    #  byproducts[key] = value
 
-    if "custom_values" in self.intoto["signed"].byproducts:
-      for key, value in \
-          self.intoto["signed"].byproducts["custom_values"].items():
-        if key == "return-value":
-          byproducts[key] = int(value)  # cast return-value back to int
-        else:
-          byproducts[key] = value
+    #if "custom_values" in self.intoto["signed"].byproducts:
+    #  for key, value in \
+    #      self.intoto["signed"].byproducts["custom_values"].items():
+    #    if key == "return-value":
+    #      byproducts[key] = int(value)  # cast return-value back to int
+    #    else:
+    #      byproducts[key] = value
 
-    for key, value in self.intoto["signed"].environment.items():
-      if key == "custom_values":
-        continue
-      environment[key] = value
+    #for key, value in self.intoto["signed"].environment.items():
+    #  if key == "custom_values":
+    #    continue
+    #  environment[key] = value
 
-    if "custom_values" in self.intoto["signed"].environment:
-      for key, value in \
-          self.intoto["signed"].environment["custom_values"].items():
-        environment[key] = value
+    #if "custom_values" in self.intoto["signed"].environment:
+    #  for key, value in \
+    #      self.intoto["signed"].environment["custom_values"].items():
+    #    environment[key] = value
 
-    in_toto_link = Link(name=step_name,
-                        materials=materials,
-                        products=products,
-                        byproducts=byproducts,
-                        command=command,
-                        environment=environment)
+    #in_toto_link = Link(name=step_name,
+    #                    materials=materials,
+    #                    products=products,
+    #                    byproducts=byproducts,
+    #                    command=command,
+    #                    environment=environment)
+
+    in_toto_link = self.intoto["signed"].to_link(step_name)
 
     signatures = []
     for signature in self.intoto["signatures"]:
