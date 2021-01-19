@@ -31,23 +31,23 @@ class TestCreateInTotoLinkFromOccurrence(unittest.TestCase):
   """Tests conversion of a Grafeas occurrence to an in-toto link."""
   def test_create_in_toto_link_from_grafeas_occurrence(self):
     grafeas_occurrence = \
-        GrafeasInTotoOccurrence.load("occurrences/clone_occurrence.json")
+        GrafeasInTotoOccurrence.load("occurrences/clone.776a00e2.occurrence")
     in_toto_link = grafeas_occurrence.to_link("clone")
     self.assertIsInstance(in_toto_link, Metablock)
 
-    in_toto_link_original = Metablock.load("links/clone_link.json")
+    in_toto_link_original = Metablock.load("links/clone.776a00e2.link")
     self.assertEqual(in_toto_link, in_toto_link_original)
 
 
 class TestCreateOccurranceFromInTotoLink(unittest.TestCase):
   """Tests conversion of an in-toto link to a Grafeas occurrence."""
   def test_create_grafeas_occurrence_from_in_toto_link(self):
-    in_toto_link = Metablock.load("links/clone_link.json")
+    in_toto_link = Metablock.load("links/clone.776a00e2.link")
     grafeas_occurrence = \
-        GrafeasInTotoOccurrence.from_link(in_toto_link, "clone-step",
+        GrafeasInTotoOccurrence.from_link(in_toto_link, "clone",
                                           "clone-resource-uri")
 
-    assert isinstance(grafeas_occurrence, GrafeasInTotoOccurrence)
+    self.assertIsInstance(grafeas_occurrence, GrafeasInTotoOccurrence)
 
 
 class TestInTotoVerify(unittest.TestCase):
@@ -122,40 +122,20 @@ class TestInTotoVerify(unittest.TestCase):
         interface.import_publickeys_from_file(["keys/alice.pub"]))
 
   def tearDown(self):
-    try:
-      os.remove("in-toto-verify-links/clone.776a00e2.link")
-    except OSError:
-      pass
-    try:
-      os.remove("in-toto-verify-links/update-version.776a00e2.link")
-    except OSError:
-      pass
-    try:
-      os.remove("in-toto-verify-links/package.2f89b927.link")
-    except OSError:
-      pass
+    for f in os.listdir("in-toto-verify-links"):
+      if f == ".keep":  # empty file to retain the directory in repository
+        continue
+      os.remove(os.path.join("in-toto-verify-links", f))
 
   def test_grafeas_occurrence_to_in_toto_link_verify(self):
     """Test in-toto-verify on in-toto link generated from Grafeas occurrence.
     """
-    # Clone Step
-    grafeas_occurrence_clone = \
-        GrafeasInTotoOccurrence.load("occurrences/clone_occurrence.json")
-    in_toto_link_clone = grafeas_occurrence_clone.to_link("clone")
-    in_toto_link_clone.dump("in-toto-verify-links/clone.776a00e2.link")
-
-    # Update Step
-    grafeas_occurrence_update = \
-        GrafeasInTotoOccurrence.load("occurrences/update_occurrence.json")
-    in_toto_link_update = grafeas_occurrence_update.to_link("update-version")
-    in_toto_link_update.dump(
-        "in-toto-verify-links/update-version.776a00e2.link")
-
-    # Package Step
-    grafeas_occurrence_package = \
-        GrafeasInTotoOccurrence.load("occurrences/package_occurrence.json")
-    in_toto_link_package = grafeas_occurrence_package.to_link("package")
-    in_toto_link_package.dump("in-toto-verify-links/package.2f89b927.link")
+    for f in os.listdir("occurrences"):
+      occurrence = GrafeasInTotoOccurrence.load(os.path.join("occurrences", f))
+      # this is hacky, yes, but since we control the test metadata...
+      step_name, keyid, _ = f.split(".")
+      in_toto_link = occurrence.to_link(step_name)
+      in_toto_link.dump("in-toto-verify-links/{}.{}.link".format(step_name, keyid))
 
     # The test passes if in_toto_verify passes
     in_toto_verify(self.metadata,
