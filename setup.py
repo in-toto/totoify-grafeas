@@ -23,7 +23,7 @@ setup(
   author_email="in-toto-dev@googlegroups.com",
   url="https://github.com/in-toto/totoify-grafeas.git",
   packages=["client"],
-  install_requires=["in-toto==0.1.1", "urllib3", "certifi"],
+  install_requires=["in-toto>=1.0.0", "urllib3", "certifi"],
   entry_points={
     "console_scripts": [
       "grafeas-load = client.grafeas_load:main",
