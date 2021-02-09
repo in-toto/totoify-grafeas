@@ -1,4 +1,0 @@
-[submodule "server/Grafeas"]
-	path = server/Grafeas
-    url = https://github.com/in-toto/Grafeas/
-    branch = extend-server
