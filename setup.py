@@ -17,18 +17,11 @@
 from setuptools import setup, find_packages
 
 setup(
-  name="totoify-grafeas-client",
+  name="totoify-grafeas",
   version="0.1.0",
   author="New York University: Secure Systems Lab",
   author_email="in-toto-dev@googlegroups.com",
   url="https://github.com/in-toto/totoify-grafeas.git",
-  packages=["client"],
-  install_requires=["in-toto>=1.0.0", "urllib3", "certifi"],
-  entry_points={
-    "console_scripts": [
-      "grafeas-load = client.grafeas_load:main",
-      "grafeas-run = client.grafeas_run:main",
-      "grafeas-verify = client.grafeas_verify:main"
-    ]
-  }
+  packages=["totoify_grafeas"],
+  install_requires=["in-toto>=1.0.0"]
 )
